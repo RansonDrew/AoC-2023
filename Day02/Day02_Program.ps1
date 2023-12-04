@@ -1,0 +1,1 @@
+$inp = ./Day02_input.txt
