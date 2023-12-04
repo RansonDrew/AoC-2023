@@ -1,13 +1,17 @@
 function Sum-CalibrationValues {
+    # Input is an object that takes the problem input as text with newline separators between lines.
     param (
         $CalibrationData
     )
+    # Initialize the total
     $CalibrationTotal = 0
     foreach ($cd in $CalibrationData) {
+        # Walk through the data and get all of the single digit matches in the line
         $mchs = $($cd | Select-String -Pattern '[0-9]' -AllMatches).Matches
-        $topindex = $mchs | Measure-Object | Select-Object -ExpandProperty Count
+        # Get the highest index by taking the object count and subtracting 1 (indices are 0 based)
+        $topindex = ($mchs.count)-1
         $d1 = $mchs[0].Value
-        $d2 = $mchs[$topindex-1].Value
+        $d2 = $mchs[$topindex].Value
         $num = [int]($d1 + $d2)
         $CalibrationTotal = $CalibrationTotal + $num
     }
