@@ -22,23 +22,30 @@ function Repair-CalibrationData {
     param (
         $CalibrationData
     )
-    $CalibrationData = $CalibrationData -replace '(oneight)','18'
-    $CalibrationData = $CalibrationData -replace '(threeight)','38'
-    $CalibrationData = $CalibrationData -replace '(fiveight)','58'
-    $CalibrationData = $CalibrationData -replace '(nineight)','98'
-    $CalibrationData = $CalibrationData -replace '(eightwo)','82'
-    $CalibrationData = $CalibrationData -replace '(eighthree)','83'
-    $CalibrationData = $CalibrationData -replace '(twone)','21'
-    $CalibrationData = $CalibrationData -replace '(sevenine)','79'
-    $CalibrationData = $CalibrationData -replace '(one)','1'
-    $CalibrationData = $CalibrationData -replace '(two)','2'
-    $CalibrationData = $CalibrationData -replace '(three)','3'
-    $CalibrationData = $CalibrationData -replace '(four)','4'
-    $CalibrationData = $CalibrationData -replace '(five)','5'
-    $CalibrationData = $CalibrationData -replace '(six)','6'
-    $CalibrationData = $CalibrationData -replace '(seven)','7'
-    $CalibrationData = $CalibrationData -replace '(eight)','8'
-    $CalibrationData = $CalibrationData -replace '(nine)','9'
+    # An ordered Dictionary of the possible repairs needed.
+    $regvalues =  [ordered]@{
+                        '(oneight)'     = '18'
+                        '(threeight)'   = '38'
+                        '(fiveight)'    = '58'
+                        '(nineight)'    = '98'
+                        '(eightwo)'     = '82'
+                        '(eighthree)'   = '83'
+                        '(twone)'       = '21'
+                        '(sevenine)'    = '79'
+                        '(one)'         = '1'
+                        '(two)'         = '2'
+                        '(three)'       = '3'
+                        '(four)'        ='4'
+                        '(five)'        = '5'
+                        '(six)'         = '6'
+                        '(seven)'       = '7'
+                        '(eight)'       = '8'
+                        '(nine)'        = '9'
+                    }
+    # Run through the repairs and apply them.
+    foreach ($filt in $regvalues.GetEnumerator()) {
+        $CalibrationData = $CalibrationData -replace $filt.Name , $filt.Value
+    }
     return $CalibrationData
 }
 
