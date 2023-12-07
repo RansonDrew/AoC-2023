@@ -2,5 +2,7 @@ Blehhhhh!!!! I had such a time with all the logcal conditions involved in search
 
 The approach I used in part 2 could be cleaned up to apply to part 1 as well. It would make the script better. Maybe I will come back later and fix it up. 
 
+I want to look at the regex - '(?!\.|[0-9]).'  It finds all the symbols and ignores '.' and digits
+
 Part 1 Answer is 554003
 Part 2 Answer is 87263515
