@@ -1,103 +1,66 @@
-function Search-AdjacentCharacter {
+function Get-SumByRow {
     param (
         [int]$CurrentRowIndex,
         $SearchMatrix,
-        [System.Text.RegularExpressions.Match]$MatchObject
+        [ValidateSet('part','gear')]$SumType
     )
-    $foundadjacent = $false
-    $SearchMatrixRowEndIndex = $SearchMatrix[$CurrentRowIndex].Length - 1
-    $StartIndex = $MatchObject.Index
-    $EndIndex = $StartIndex + $MatchObject.Length - 1
-    $SearchStartIndex = $StartIndex -1
-    $EndSearchIndex = $EndIndex + 1
-    if ($StartIndex -eq 0) {
-        $SearchStartIndex = $SearchStartIndex +1
-        if (($SearchMatrix[$CurrentRowIndex][$EndSearchIndex] -ne '.')) { $foundadjacent = $true }
-    } elseif ($EndIndex -eq $SearchMatrixRowEndIndex) {
-        $EndSearchIndex = $EndSearchIndex - 1
-        if (($SearchMatrix[$CurrentRowIndex][$SearchStartIndex] -ne '.')) { $foundadjacent = $true }
-    } else {
-        if (($SearchMatrix[$CurrentRowIndex][$SearchStartIndex] -ne '.') -or ($SearchMatrix[$CurrentRowIndex][$EndSearchIndex] -ne '.')) { $foundadjacent = $true }
-    }
-    if($CurrentRowIndex -eq 0) {   
-        foreach ($i in ($SearchStartIndex..$EndSearchIndex)) {
-            if (($SearchMatrix[$CurrentRowIndex + 1][$i] -ne '.')) { $foundadjacent = $true }
+    $thesum = 0
+    # Is it a part sum by row or gear ratio sum by row
+    switch ($SumType) {
+        'part' {
+            $f1 = '\d+' # regex for digit groups
+            $f2 = '(?!\.|[0-9]).' # regex for anything that is not a '.' or a single digit
         }
-    } elseif ($CurrentRowIndex -eq ($SearchMatrix.Count -1)) {
-        foreach ($i in ($SearchStartIndex..$EndSearchIndex)) {
-            if (($SearchMatrix[$CurrentRowIndex - 1][$i] -ne '.')) { $foundadjacent = $true }
-        }
-    } else {
-        foreach ($i in ($SearchStartIndex..$EndSearchIndex)) {
-            if (($SearchMatrix[$CurrentRowIndex + 1][$i] -ne '.') -or ($SearchMatrix[$CurrentRowIndex - 1][$i] -ne '.')) { $foundadjacent = $true }
+        'gear' {
+            $f1 = '\*' # regex for a single '*'
+            $f2 = '\d+' # regex for digit groups
         }
     }
-    return $foundadjacent
-}
-
-function Get-GearRatioSumByRow {
-    param (
-        [int]$CurrentRowIndex,
-        $SearchMatrix
-    )
-    $gearratiosum = 0
-    # In every case we will search the current row for possible gears and digits
-    $possiblegears = $($SearchMatrix[$CurrentRowIndex] | Select-String -Pattern '\*' -AllMatches).Matches
-    #Write-Host "$($possiblegears.count) possible gears found"
-    $currentrow = $($SearchMatrix[$CurrentRowIndex] | Select-String '\d+' -AllMatches).Matches
+    # In every case we will search the current row for possible matches
+    $possibles = $($SearchMatrix[$CurrentRowIndex] | Select-String $f1 -AllMatches).Matches
+    $currentrow = $($SearchMatrix[$CurrentRowIndex] | Select-String $f2 -AllMatches).Matches
     # If we are on the first row of the search matrix there is no look back
     if ($CurrentRowIndex -eq 0) {
         $beforerow = $null
     } else {
-        $beforerow = $($SearchMatrix[$CurrentRowIndex - 1] | Select-String '\d+' -AllMatches).Matches
+        $beforerow = $($SearchMatrix[$CurrentRowIndex - 1] | Select-String $f2 -AllMatches).Matches
     }
     # If we are on the last row of the search matrix there is no look ahead
     if ($CurrentRowIndex -eq ($SearchMatrix.Count -1)) {
         $afterrow = $null
     } else {
-        $afterrow = $($SearchMatrix[$CurrentRowIndex + 1] | Select-String '\d+' -AllMatches).Matches
+        $afterrow = $($SearchMatrix[$CurrentRowIndex + 1] | Select-String $f2 -AllMatches).Matches
     }
-    # Since all variables now have 'something' in them, we should be able to appl the same logic
+    # Since all variables now have 'something' in them, we should be able to apply the same logic
     # to every row. 
-
     # Now we loop through the 'possibles'
-    foreach ($p in $possiblegears) {
-        # Initialize a part array to which we will add an item each time we find a match adjacent to 
-        # a possible gear
-        $partlist = @()
-        $partlist += $beforerow | Where-Object -FilterScript {(($_.Index -le ($p.Index + $p.Length)) -and (($_.Index + $_.Length - 1) -ge ($p.Index -1)))} | Select-Object -ExpandProperty Value
-        $partlist += $currentrow | Where-Object -FilterScript {(($_.Index + $_.Length - 1) -eq $p.Index -1) -or ($_.Index -eq ($p.Index + $p.Length))} | Select-Object -ExpandProperty Value
-        $partlist += $afterrow | Where-Object -FilterScript {(($_.Index -le ($p.Index + $p.Length)) -and (($_.Index + $_.Length - 1) -ge ($p.Index -1)))} | Select-Object -ExpandProperty Value 
-        # If the partlist count is exactly 2, multiply them together and add them to gearratiosum
-        if ($partlist.count -eq 2) {$gearratiosum = $gearratiosum + ([int]$partlist[0] * [int]$partlist[1])}
+    foreach ($p in $possibles) {
+        # Initialize a variable to hold the matches from  the row above, the current row, and the row below
+        $thelist = @()
+        $thelist += $beforerow | Where-Object -FilterScript {(($_.Index -le ($p.Index + $p.Length)) -and (($_.Index + $_.Length - 1) -ge ($p.Index -1)))} | Select-Object -ExpandProperty Value
+        $thelist += $currentrow | Where-Object -FilterScript {(($_.Index + $_.Length - 1) -eq $p.Index -1) -or ($_.Index -eq ($p.Index + $p.Length))} | Select-Object -ExpandProperty Value
+        $thelist += $afterrow | Where-Object -FilterScript {(($_.Index -le ($p.Index + $p.Length)) -and (($_.Index + $_.Length - 1) -ge ($p.Index -1)))} | Select-Object -ExpandProperty Value 
+
+        switch ($SumType) {
+            # if there is at least one adjacent symbol, add the value of the digit group to the total
+            'part' {if ($thelist.count -gt 0) {$thesum = $thesum + [int]$p.Value}} 
+            # if there are exactly two digit groups adjacent to a gear, multiply their values and add them to the total
+            'gear' {if ($thelist.count -eq 2) {$thesum = $thesum + ([int]$thelist[0] * [int]$thelist[1])}}
+        } 
     }
-    return $gearratiosum
+    return $thesum
 }
 
-# Read the input data
-$inp = Get-Content ./Day03_input.txt
-# Initialize the total value
-$Total = 0
-$GearTotal = 0
-# Get the maximum index by looking at the count property of $inp and subtracting 1
-$maxindex = $inp.Count - 1
+$inp = Get-Content ./Day03_input.txt # Read the input data
+$PartTotal = 0 # Initialize the part 1 total value
+$GearTotal = 0 # Initialize the part 2 total value
 
-# Loop through rows 0-139 (or whatever the maximum - 1 is)
-foreach ($r in $(0..($maxindex))) {
-    $partnums = @()
-    $nonpartnums = @()
-    $rowtotal = 0
-    $rownums = $($inp[$r] | Select-String -Pattern '\d+' -AllMatches).Matches
-    foreach ($num in $rownums) {
-        $ispartnum = Search-AdjacentCharacter -CurrentRowIndex $r -SearchMatrix $inp -MatchObject $num        
-        if ($ispartnum) {
-            $Total = $Total + [int]$num.Value
-            $rowtotal = $rowtotal + [int]$num.Value
-        }
-        if ($ispartnum) {$partnums += $num.Value} else {$nonpartnums += $num.Value}
-    }
-    $GearTotal = $GearTotal + (Get-GearRatioSumByRow -CurrentRowIndex $r -SearchMatrix $inp)
+# Loop through all rows
+foreach ($r in $(0..($inp.Count - 1))) {
+
+    $PartTotal = $PartTotal + (Get-SumByRow -CurrentRowIndex $r -SearchMatrix $inp -SumType "part")
+    $GearTotal = $GearTotal + (Get-SumByRow -CurrentRowIndex $r -SearchMatrix $inp -SumType "gear")
 }
 
-Write-Host "Part 1 Answer is $Total"
+Write-Host "Part 1 Answer is $PartTotal"
 Write-Host "Part 2 Answer is $GearTotal"
