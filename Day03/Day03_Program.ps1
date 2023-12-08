@@ -51,13 +51,13 @@ function Get-SumByRow {
     return $thesum
 }
 
+# Start of Main Program
 $inp = Get-Content ./Day03_input.txt # Read the input data
 $PartTotal = 0 # Initialize the part 1 total value
 $GearTotal = 0 # Initialize the part 2 total value
 
 # Loop through all rows
 foreach ($r in $(0..($inp.Count - 1))) {
-
     $PartTotal = $PartTotal + (Get-SumByRow -CurrentRowIndex $r -SearchMatrix $inp -SumType "part")
     $GearTotal = $GearTotal + (Get-SumByRow -CurrentRowIndex $r -SearchMatrix $inp -SumType "gear")
 }
